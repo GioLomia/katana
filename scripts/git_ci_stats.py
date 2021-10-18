@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import json
 import os.path
@@ -11,10 +12,6 @@ import github
 
 import requests
 from requests.auth import HTTPBasicAuth
-
-
-def get_repo(args, g):
-    g.get_repo(args.url)
 
 
 def get_master(repo):
@@ -36,6 +33,7 @@ def get_file_data(file_ls):
 
 
 def get_commit_data(commit):
+    print(commit)
     commit_data = {}
     commit_data["sha"] = commit.sha
     commit_data["files"] = get_file_data(commit.files)
@@ -50,6 +48,9 @@ def unpack_commits(commits):
         commits_ls.append(commits[i])
     return commits_ls
 
+def unpack_check_suite(check_suite):
+    # for app in check_suite.
+    print(check_suite.app)
 
 def get_auth():
     try:
@@ -61,22 +62,49 @@ def get_auth():
     except KeyError:
         return None
 
-def get_auth():
-    try:
-        password = os.environ.get(
-            "GITHUB_PASSWORD", os.environ.get("GITHUB_TOKEN", None))
-        if not password:
-            raise KeyError()
-        return HTTPBasicAuth(os.environ["GITHUB_USERNAME"], password)
-    except KeyError:
-        return None
+
 
 def main(args):
-    auth = get_auth()
-    g = github.Github()
-    repo = get_repo(args, g)
+    # auth = get_auth()
+    # if not auth:
+    #     print(
+    #         "This script requires GITHUB_USERNAME and either GITHUB_PASSWORD "
+    #         "or GITHUB_TOKEN to be set to valid Github credentials."
+    #     )
+    #     return 2
+    # page = 0
+    # repo_prefix = f"https://api.github.com/repos/{args.url}"
+    # response = requests.get(
+    #     f"{repo_prefix}/actions/runs",
+    #     params={"branch": "master", "status": "success"},
+    #     headers={"Accept": "application/vnd.github.v3+json"},
+    #     auth=auth,
+    # )
+    # print(response.json())
+
+
+    g = github.Github(os.environ["GITHUB_TOKEN"])
+    repo = g.get_repo(args.url)
+    print(repo)
     commits = repo.get_commits()
     commits_ls = unpack_commits(commits)
-    my_commit = commits_ls[5]
-    commit_data = get_commit_data(my_commit)
-    commit_json = json.dumps(commit_data, indent=4)
+    my_commit = commits_ls[0]
+    commit_run_check = my_commit.get_check_runs()
+    print(my_commit, commit_run_check)
+
+    for check in commit_run_check:
+        print(check.name)
+        print(check)
+        unpack_check_suite(check)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--url", help="Repo to query file changes.",
+    )
+    parser.add_argument(
+        "--result-dir", help="Directory to output file change information.",
+    )
+    args = parser.parse_args()
+    main(args)
