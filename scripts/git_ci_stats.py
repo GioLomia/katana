@@ -48,54 +48,32 @@ def unpack_commits(commits):
         commits_ls.append(commits[i])
     return commits_ls
 
-def unpack_check_suite(check_suite):
-    # for app in check_suite.
-    print(check_suite.app)
-
-def get_auth():
-    try:
-        password = os.environ.get(
-            "GITHUB_PASSWORD", os.environ.get("GITHUB_TOKEN", None))
-        if not password:
-            raise KeyError()
-        return HTTPBasicAuth(os.environ["GITHUB_USERNAME"], password)
-    except KeyError:
-        return None
-
+def unpack_check_suite(suite):
+    for run in suite:
+        print("         ", run.name)
 
 
 def main(args):
-    # auth = get_auth()
-    # if not auth:
-    #     print(
-    #         "This script requires GITHUB_USERNAME and either GITHUB_PASSWORD "
-    #         "or GITHUB_TOKEN to be set to valid Github credentials."
-    #     )
-    #     return 2
-    # page = 0
-    # repo_prefix = f"https://api.github.com/repos/{args.url}"
-    # response = requests.get(
-    #     f"{repo_prefix}/actions/runs",
-    #     params={"branch": "master", "status": "success"},
-    #     headers={"Accept": "application/vnd.github.v3+json"},
-    #     auth=auth,
-    # )
-    # print(response.json())
-
-
     g = github.Github(os.environ["GITHUB_TOKEN"])
     repo = g.get_repo(args.url)
     print(repo)
     commits = repo.get_commits()
     commits_ls = unpack_commits(commits)
-    my_commit = commits_ls[0]
+    my_commit = commits_ls[1]
+    commit_check_suite = my_commit.get_check_suites()
     commit_run_check = my_commit.get_check_runs()
     print(my_commit, commit_run_check)
+    
+    for suite in commit_check_suite:
+        unpack_check_suite(suite.get_check_runs())
 
-    for check in commit_run_check:
-        print(check.name)
-        print(check)
-        unpack_check_suite(check)
+    # for check in commit_run_check:
+    #     print(check.name)
+    #     annotations = check.get_annotations()
+    #     # unpack_check_run(annotations)
+    #     print()
+
+        # unpack_check_suite(check)
 
 
 if __name__ == "__main__":
